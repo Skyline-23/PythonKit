@@ -213,6 +213,15 @@ public extension PythonObject {
     var throwingCallable: ThrowingDynamicCallable {
         return ThrowingDynamicCallable(self)
     }
+
+    /// Returns a dynamic-callable wrapper that catches Python exceptions and
+    /// returns `Python.None` instead of crashing.
+    ///
+    /// This keeps the existing `PythonObject` call behavior unchanged while
+    /// offering an opt-in path to safely handle errors without throwing.
+    var safeCallable: SafeDynamicCallable {
+        return SafeDynamicCallable(self)
+    }
 }
 
 /// An error produced by a failable Python operation.
@@ -460,6 +469,49 @@ public struct ThrowingDynamicCallable {
         withKeywordArguments args:
         [(key: String, value: PythonConvertible)] = []) throws -> PythonObject {
         return try base.throwing.dynamicallyCall(withKeywordArguments: args)
+    }
+}
+
+/// A dynamic-callable wrapper around `PythonObject` that catches Python
+/// exceptions and returns `Python.None` instead of crashing.
+@dynamicCallable
+public struct SafeDynamicCallable {
+    private var base: PythonObject
+
+    fileprivate init(_ base: PythonObject) {
+        self.base = base
+    }
+
+    @discardableResult
+    public func dynamicallyCall(
+        withArguments args: [PythonConvertible] = []) -> PythonObject {
+        do {
+            return try base.throwing.dynamicallyCall(withArguments: args)
+        } catch {
+            return Python.None
+        }
+    }
+
+    @discardableResult
+    public func dynamicallyCall(
+        withKeywordArguments args:
+        KeyValuePairs<String, PythonConvertible> = [:]) -> PythonObject {
+        do {
+            return try base.throwing.dynamicallyCall(withKeywordArguments: args)
+        } catch {
+            return Python.None
+        }
+    }
+
+    @discardableResult
+    public func dynamicallyCall(
+        withKeywordArguments args:
+        [(key: String, value: PythonConvertible)] = []) -> PythonObject {
+        do {
+            return try base.throwing.dynamicallyCall(withKeywordArguments: args)
+        } catch {
+            return Python.None
+        }
     }
 }
 
